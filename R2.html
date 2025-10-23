@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Retirement Planning Tool</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 24px;
+    background: #f0f2f7;
+  }
+  .main-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+    max-width: 1100px;
+    margin: auto;
+    align-items: flex-start;
+  }
+  .side-panel {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.09);
+    padding: 32px 28px;
+    width: 380px;
+    min-width: 320px;
+  }
+  .chart-panel {
+    flex: 1;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    padding: 32px;
+    min-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  h2, h3 {
+    margin-bottom: 10px;
+    color: #34495e;
+  }
+  label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: 500;
+  }
+  input[type=number] {
+    padding: 6px;
+    margin-bottom: 16px;
+    width: 170px;
+    border: 1px solid #d4d5da;
+    border-radius: 4px;
+  }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  output {
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+  }
+  canvas {
+    max-height: 340px;
+  }
+  .result {
+    margin-top: 18px;
+    padding: 16px;
+    background: #eef;
+    border-radius: 7px;
+    color: #224;
+    font-size: 1.09em;
+  }
+  .summary {
+    margin-bottom: 10px;
+  }
+  @media (max-width: 900px) {
+    .main-grid {
+      flex-direction: column;
+    }
+    .chart-panel {
+      width: 100%;
+      min-width: unset;
+    }
+    .side-panel {
+      width: 100%;
+      min-width: unset;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="main-grid">
+  <div class="side-panel">
+    <h2>Retirement Info</h2>
+    <label>Current Age</label>
+    <input type="number" id="age" value="30" min="18" max="75" oninput="updateCalculations()" />
+    <label>Retirement Age</label>
+    <input type="number" id="retireAge" value="65" min="35" max="85" oninput="updateCalculations()" />
+    <label>Initial Investment</label>
+    <input type="number" id="invest" value="100000" min="1000" step="100" oninput="updateCalculations()" />
+    <label>Monthly Investment</label>
+    <input type="number" id="monthlyInvest" value="1000" min="0" step="50" oninput="updateCalculations()" />
+    <label>Monthly Retirement Spend</label>
+    <input type="number" id="monthlySpend" value="3000" min="500" step="100" oninput="updateCalculations()" />
+    <label>Singapore CPF Amount</label>
+    <input type="number" id="cpfAmount" value="80000" min="0" step="1000" oninput="updateCalculations()" />
+    <small>CPF compounds at 4% per annum until age 85</small>
+    <label>Other Asset Amount</label>
+    <input type="number" id="assetAmount" value="50000" min="0" step="1000" oninput="updateCalculations()" />
+    <label>Low Risk Allocation (%)</label>
+    <div class="slider-row">
+      <input type="range" id="lowRisk" min="0" max="100" value="60" oninput="updateSliders(event)" />
+      <output id="lowRiskValue">60</output>
+    </div>
+    <label>High Risk Allocation (%)</label>
+    <div class="slider-row">
+      <input type="range" id="highRisk" min="0" max="100" value="40" oninput="updateSliders(event)" />
+      <output id="highRiskValue">40</output>
+    </div>
+    <label>Low Risk Annual Return (%)</label>
+    <input type="number" id="lowRate" value="4" min="1" max="10" step="0.1" oninput="updateCalculations()" />
+    <label>High Risk Annual Return (%)</label>
+    <input type="number" id="highRate" value="8" min="3" max="15" step="0.1" oninput="updateCalculations()" />
+  </div>
+  <div class="chart-panel">
+    <h3>Investment Growth Until Retirement</h3>
+    <canvas id="growthChart"></canvas>
+    <h3>Retirement Fund vs Spending</h3>
+    <canvas id="spendingChart"></canvas>
+    <div id="result" class="result"></div>
+  </div>
+</div>
+<script>
+let growthChart, spendingChart;
+const lowSlider = document.getElementById('lowRisk');
+const highSlider = document.getElementById('highRisk');
+const lowOutput = document.getElementById('lowRiskValue');
+const highOutput = document.getElementById('highRiskValue');
+
+function updateSliders(event) {
+  const changedSlider = event.target;
+  const otherSlider = changedSlider.id === 'lowRisk' ? highSlider : lowSlider;
+  const otherOutput = changedSlider.id === 'lowRisk' ? highOutput : lowOutput;
+  const currentOutput = changedSlider.id === 'lowRisk' ? lowOutput : highOutput;
+  otherSlider.value = 100 - changedSlider.value;
+  currentOutput.value = changedSlider.value;
+  otherOutput.value = otherSlider.value;
+  updateCalculations();
+}
+
+function calculateProjections() {
+  const age = Number(document.getElementById('age').value);
+  const retireAge = Number(document.getElementById('retireAge').value);
+  const invest = Number(document.getElementById('invest').value);
+  const monthlyInvest = Number(document.getElementById('monthlyInvest').value);
+  const cpfAmount = Number(document.getElementById('cpfAmount').value);
+  const assetAmount = Number(document.getElementById('assetAmount').value);
+  const lowPct = Number(lowSlider.value)/100;
+  const highPct = Number(highSlider.value)/100;
+  const lowRate = Number(document.getElementById('lowRate').value)/100;
+  const highRate = Number(document.getElementById('highRate').value)/100;
+  const monthlySpend = Number(document.getElementById('monthlySpend').value);
+  const yearsToRetire = retireAge - age;
+  const yearsAfterRetire = 85 - retireAge;
+  if (yearsToRetire <= 0 || yearsAfterRetire <= 0) return null;
+
+  // Portfolio growth until retirement
+  const years = [];
+  const lowRiskValues = [];
+  const highRiskValues = [];
+  const totalValues = [];
+  const cpfValues = [];
+  let lowRiskFund = invest * lowPct;
+  let highRiskFund = invest * highPct;
+  let cpfFund = cpfAmount;
+
+  for(let year=0; year<yearsToRetire; year++) {
+    years.push(age + year);
+    if(year === 0) {
+      lowRiskFund += monthlyInvest * 12 * lowPct;
+      highRiskFund += monthlyInvest * 12 * highPct;
+    } else {
+      lowRiskFund = lowRiskFund*(1+lowRate) + monthlyInvest * 12 * lowPct;
+      highRiskFund = highRiskFund*(1+highRate) + monthlyInvest * 12 * highPct;
+    }
+    cpfFund = cpfFund * 1.04; // CPF grows at 4% p.a.
+    lowRiskValues.push(lowRiskFund);
+    highRiskValues.push(highRiskFund);
+    totalValues.push(lowRiskFund + highRiskFund + cpfFund + assetAmount);
+    cpfValues.push(cpfFund + assetAmount);
+  }
+
+  const totalAtRetirement = totalValues[totalValues.length - 1];
+
+  // Project fund depletion from retirement to age 85 (including CPF and other assets)
+  const spendingYears = [];
+  const remainingFunds = [];
+  const cumulativeSpending = [];
+  const cumulativeSpendingInflation = [];
+  let currentFund = totalAtRetirement;
+  const annualSpendBase = monthlySpend * 12;
+  let cumulativeSpend = 0;
+  let cumulativeSpendInflation = 0;
+  for(let year=0; year<yearsAfterRetire; year++) {
+    spendingYears.push(retireAge + year);
+    remainingFunds.push(Math.max(0, currentFund));
+    
+    // Without inflation
+    cumulativeSpend += annualSpendBase;
+    cumulativeSpending.push(cumulativeSpend);
+
+    // With 3% inflation
+    const inflatedAnnualSpend = annualSpendBase * Math.pow(1.03, year);
+    cumulativeSpendInflation += inflatedAnnualSpend;
+    cumulativeSpendingInflation.push(cumulativeSpendInflation);
+
+    // Deduct current year spending with no inflation from fund for fund depletion calculation
+    currentFund -= annualSpendBase;
+  }
+
+  const totalSpendNeeded = annualSpendBase * yearsAfterRetire;
+
+  return {
+    years,
+    lowRiskValues,
+    highRiskValues,
+    cpfValues,
+    totalValues,
+    totalAtRetirement,
+    totalSpendNeeded,
+    yearsAfterRetire,
+    retireAge,
+    spendingYears,
+    remainingFunds,
+    cumulativeSpending,
+    cumulativeSpendingInflation,
+    cpfFund,
+    assetAmount,
+    monthlySpend
+  };
+}
+
+function updateCharts() {
+  const data = calculateProjections();
+  if (!data) return;
+
+  // Update growthChart
+  if (growthChart) {
+    growthChart.data.labels = data.years;
+    growthChart.data.datasets[0].data = data.lowRiskValues;
+    growthChart.data.datasets[1].data = data.highRiskValues;
+    growthChart.data.datasets[2].data = data.cpfValues;
+    growthChart.data.datasets[3].data = data.totalValues;
+    growthChart.update('none');
+  }
+
+  // Update spendingChart
+  if (spendingChart) {
+    spendingChart.data.labels = data.spendingYears;
+    spendingChart.data.datasets[0].data = data.remainingFunds;
+    spendingChart.data.datasets[1].data = data.cumulativeSpending;
+    // Add cumulative spending inflation line
+    if(spendingChart.data.datasets.length < 3) {
+      spendingChart.data.datasets.push({
+        label: 'Cumulative Spending (3% Inflation)',
+        data: data.cumulativeSpendingInflation,
+        borderColor: '#FF5733',
+        backgroundColor: 'rgba(255,87,51,0.12)',
+        tension: 0.4,
+      });
+    } else {
+      spendingChart.data.datasets[2].data = data.cumulativeSpendingInflation;
+    }
+    spendingChart.update('none');
+  }
+
+  updateSummary(data);
+}
+
+function updateSummary(data) {
+  const isSufficient = data.totalAtRetirement >= data.totalSpendNeeded;
+  const surplus = data.totalAtRetirement - data.totalSpendNeeded;
+  let summary = `
+    <div class="summary">
+      <strong>Portfolio at retirement:</strong> ${data.totalAtRetirement.toLocaleString(undefined, {maximumFractionDigits:0})}<br />
+      <strong>Invested funds:</strong> ${(data.lowRiskValues[data.lowRiskValues.length-1] + data.highRiskValues[data.highRiskValues.length-1]).toLocaleString(undefined, {maximumFractionDigits:0})}<br />
+      <strong>CPF:</strong> ${data.cpfFund.toLocaleString(undefined, {maximumFractionDigits:0})}<br />
+      <strong>Other assets:</strong> ${data.assetAmount.toLocaleString(undefined, {maximumFractionDigits:0})}<br />
+      <strong>Total Spending Needed Age ${data.retireAge}-85:</strong> ${data.totalSpendNeeded.toLocaleString(undefined, {maximumFractionDigits:0})}<br />
+      <strong>Net Position:</strong> ${surplus > 0 ? `Surplus` : `Shortfall of ${Math.abs(surplus).toLocaleString(undefined, {maximumFractionDigits:0})}`}
+    </div>
+  `;
+  if (isSufficient) {
+    summary += '<p style="color:#2ecc71; font-size:1.1em;">Your retirement plan looks solid!</p>';
+  } else {
+    summary += '<p style="color:#e74c3c; font-size:1.1em;">Consider increasing savings, retiring later, or reducing monthly spend.</p>';
+  }
+  document.getElementById('result').innerHTML = summary;
+}
+
+function updateCalculations() {
+  updateCharts();
+}
+
+function initializeCharts() {
+  const growthCtx = document.getElementById('growthChart').getContext('2d');
+  growthChart = new Chart(growthCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Low Risk Investment', data: [], borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.16)', tension: 0.4 },
+        { label: 'High Risk Investment', data: [], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.16)', tension: 0.4 },
+        { label: 'CPF Assets', data: [], borderColor: '#964B00', backgroundColor: 'rgba(150,75,0,0.10)', tension: 0.4 },
+        { label: 'Total Portfolio', data: [], borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.16)', borderWidth: 3, tension: 0.4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: value => value.toLocaleString() } },
+        x: { title: { display: true, text: 'Age' } }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
+          }
+        },
+      }
+    }
+  });
+
+  const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+  spendingChart = new Chart(spendingCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Remaining Funds', data: [], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.12)', tension: 0.4 },
+        { label: 'Cumulative Spending', data: [], borderColor: '#f39c12', backgroundColor: 'rgba(243,156,18,0.12)', tension: 0.4 },
+        { label: 'Cumulative Spending (3% Inflation)', data: [], borderColor: '#FF5733', backgroundColor: 'rgba(255,87,51,0.12)', tension: 0.4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: value => value.toLocaleString() } },
+        x: { title: { display: true, text: 'Age' } }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
+          }
+        },
+      }
+    }
+  });
+
+  updateCalculations();
+}
+
+window.addEventListener('load', () => {
+  lowOutput.value = lowSlider.value;
+  highOutput.value = highSlider.value;
+  initializeCharts();
+});
+</script>
+</body>
+</html>

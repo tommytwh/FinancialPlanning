@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Investment Growth Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+  h2 { text-align: center; }
+  #inputSection { margin-bottom: 20px; }
+  .input-group { margin: 8px 0; }
+  label { display: inline-block; width: 220px; }
+  input[type=number] { width: 100px; }
+  button { margin-top: 12px; padding: 6px 16px; }
+</style>
+</head>
+<body>
+
+<h2>Investment Growth Simulator</h2>
+
+<div id="inputSection">
+  <div class="input-group">
+    <label for="initialInvestment">Initial Investment Amount (SGD):</label>
+    <input type="number" id="initialInvestment" value="1000" min="1" />
+  </div>
+  <div class="input-group">
+    <label for="investmentYears">Number of Years to Invest:</label>
+    <input type="number" id="investmentYears" value="20" min="1" max="50" />
+  </div>
+  <div class="input-group">
+    <label for="tBillsReturn">Singapore T-Bills Annual Return (%):</label>
+    <input type="number" id="tBillsReturn" value="2.5" step="0.01" min="0" max="20" />
+  </div>
+  <div class="input-group">
+    <label for="bondsReturn">Bonds Annual Return (%):</label>
+    <input type="number" id="bondsReturn" value="3.5" step="0.01" min="0" max="20" />
+  </div>
+  <div class="input-group">
+    <label for="stocksReturn">Stocks Annual Return (%):</label>
+    <input type="number" id="stocksReturn" value="8" step="0.01" min="0" max="50" />
+  </div>
+  <div class="input-group">
+    <label for="etfReturn">ETF Annual Return (%):</label>
+    <input type="number" id="etfReturn" value="7" step="0.01" min="0" max="50" />
+  </div>
+  <button onclick="updateChart()">Update Chart</button>
+</div>
+
+<canvas id="investmentChart" width="850" height="400"></canvas>
+
+<script>
+  const ctx = document.getElementById('investmentChart').getContext('2d');
+  let investmentChart;
+
+  const cashReturn = 0.02;
+
+  function computeGrowth(initial, years, tBillsRate, bondsRate, stocksRate, etfRate) {
+    const returns = {
+      Cash: cashReturn,
+      'Singapore T-Bills': tBillsRate / 100,
+      Bonds: bondsRate / 100,
+      Stocks: stocksRate / 100,
+      ETF: etfRate / 100
+    };
+
+    // Generate array of years from 0 to years inclusive
+    const time = Array.from({length: years + 1}, (_, i) => i);
+
+    // Prepare datasets with data and final gains
+    const datasets = [];
+    for (const [asset, rate] of Object.entries(returns)) {
+      const values = time.map(year => +(initial * Math.pow(1 + rate, year)).toFixed(2));
+      const finalValue = values[values.length - 1];
+      const gainPercent = ((finalValue - initial) / initial * 100).toFixed(2);
+      datasets.push({
+        label: `${asset} (+${gainPercent}%)`,
+        data: values,
+        borderWidth: 2,
+        fill: false,
+      });
+    }
+    return {datasets, time};
+  }
+
+  function createChart(initial, years, tBills, bonds, stocks, etf) {
+    const {datasets, time} = computeGrowth(initial, years, tBills, bonds, stocks, etf);
+    if (investmentChart) {
+      investmentChart.destroy();
+    }
+    investmentChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: time,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        aspectRatio: 2,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              font: { size: 14 }
+            }
+          },
+          title: {
+            display: true,
+            text: `Investment Growth Over ${years} Years`,
+            font: { size: 20 }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Years' },
+            ticks: { stepSize: 1 }
+          },
+          y: {
+            title: { display: true, text: 'Value (SGD)' },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // Initial chart render
+  createChart(1000, 20, 2.5, 3.5, 8, 7);
+
+  // Update chart on button click
+  function updateChart() {
+    const initial = parseFloat(document.getElementById('initialInvestment').value);
+    const years = parseInt(document.getElementById('investmentYears').value);
+    const tBills = parseFloat(document.getElementById('tBillsReturn').value);
+    const bonds = parseFloat(document.getElementById('bondsReturn').value);
+    const stocks = parseFloat(document.getElementById('stocksReturn').value);
+    const etf = parseFloat(document.getElementById('etfReturn').value);
+
+    if (isNaN(initial) || initial <= 0) {
+      alert('Please enter a valid positive number for the initial investment.');
+      return;
+    }
+    if (isNaN(years) || years < 1 || years > 50) {
+      alert('Please enter a valid number of years between 1 and 50.');
+      return;
+    }
+    if ([tBills, bonds, stocks, etf].some(x => isNaN(x) || x < 0)) {
+      alert('Please enter valid non-negative percentages for returns.');
+      return;
+    }
+
+    createChart(initial, years, tBills, bonds, stocks, etf);
+  }
+</script>
+
+</body>
+</html>
