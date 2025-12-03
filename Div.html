@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend vs CPF Return Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+        .slider-container { margin: 20px 0; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; }
+        .value { font-size: 1.2em; color: #007bff; }
+        .returns-container { display: flex; gap: 40px; margin: 20px 0; }
+        .return-item { flex: 1; text-align: center; }
+        .return-label { font-size: 1.1em; margin-bottom: 5px; }
+        #annualReturn { font-size: 2.2em; font-weight: bold; color: #28a745; }
+        #cpfReturn { font-size: 2.2em; font-weight: bold; color: #ffc107; }
+        canvas { max-height: 400px; margin-top: 20px; }
+        .cpf-note { background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Dividend vs CPF Return Calculator</h1>
+    <p>Compare annual dividend returns against Singapore CPF returns (4% fixed).</p>
+    
+    <div class="slider-container">
+        <label for="amount">Investment Amount ($): <span class="value" id="amountValue">10000</span></label>
+        <input type="range" id="amount" min="100000" max="5000000" step="1000" value="10000">
+    </div>
+    
+    <div class="slider-container">
+        <label for="yield">Dividend Yield (%): <span class="value" id="yieldValue">5</span></label>
+        <input type="range" id="yield" min="0" max="20" step="0.1" value="5">
+    </div>
+    
+    <div class="slider-container">
+        <label for="cpfAmount">CPF Amount ($): <span class="value" id="cpfValue">50000</span></label>
+        <input type="range" id="cpfAmount" min="0" max="1000000" step="1000" value="50000">
+    </div>
+    
+    <div class="cpf-note">
+        <strong>CPF Note:</strong> Singapore CPF Ordinary Account earns 2.5% + extra 1.5% = 4% total interest (government guaranteed).
+    </div>
+    
+    <div class="returns-container">
+        <div class="return-item">
+            <div class="return-label">Annual Dividend</div>
+            <div id="annualReturn">$500.00</div>
+        </div>
+        <div class="return-item">
+            <div class="return-label">Annual CPF (4%)</div>
+            <div id="cpfReturn">$2,000.00</div>
+        </div>
+    </div>
+    
+    <canvas id="returnChart"></canvas>
+    
+    <script>
+        const ctx = document.getElementById('returnChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Annual Dividend', 'Annual CPF (4%)'],
+                datasets: [{
+                    label: 'Annual Returns ($)',
+                    data: [500, 2000],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',   // Green - Annual Dividend
+                        'rgba(255, 193, 7, 0.8)'    // Yellow - CPF
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return '$' + value.toLocaleString(); } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Annual Dividend vs CPF (4%) Returns' }
+                }
+            }
+        });
+
+        const amountSlider = document.getElementById('amount');
+        const yieldSlider = document.getElementById('yield');
+        const cpfSlider = document.getElementById('cpfAmount');
+        const amountValue = document.getElementById('amountValue');
+        const yieldValue = document.getElementById('yieldValue');
+        const cpfValue = document.getElementById('cpfValue');
+        const annualReturn = document.getElementById('annualReturn');
+        const cpfReturn = document.getElementById('cpfReturn');
+
+        function updateChart() {
+            const amount = parseFloat(amountSlider.value);
+            const yieldPct = parseFloat(yieldSlider.value);
+            const cpfAmount = parseFloat(cpfSlider.value);
+            
+            const annualDividend = (amount * yieldPct) / 100;
+            const cpfAnnual = (cpfAmount * 4) / 100;
+
+            amountValue.textContent = amount.toLocaleString();
+            yieldValue.textContent = yieldPct;
+            cpfValue.textContent = cpfAmount.toLocaleString();
+            
+            annualReturn.textContent = `$${annualDividend.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            cpfReturn.textContent = `$${cpfAnnual.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            chart.data.datasets[0].data[0] = annualDividend;
+            chart.data.datasets[0].data[1] = cpfAnnual;
+            chart.update('none');
+        }
+
+        amountSlider.addEventListener('input', updateChart);
+        yieldSlider.addEventListener('input', updateChart);
+        cpfSlider.addEventListener('input', updateChart);
+
+        // Initial update
+        updateChart();
+    </script>
+</body>
+</html>
