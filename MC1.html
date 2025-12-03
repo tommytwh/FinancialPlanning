@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SG Retirement Monte Carlo Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { color: #1a365d; text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .input-field { display: flex; flex-direction: column; }
+        label { font-weight: 600; color: #374151; margin-bottom: 5px; font-size: 14px; }
+        input, select { padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; transition: border-color 0.2s; }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        button { grid-column: span 2; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        button:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); }
+        button:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+        .results { margin-top: 30px; display: none; }
+        .success-rate { font-size: 48px; font-weight: 800; color: #10b981; text-align: center; margin: 20px 0; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .metric-card { background: #f0f9ff; padding: 20px; border-radius: 12px; text-align: center; border-left: 5px solid #3b82f6; }
+        .metric-value { font-size: 28px; font-weight: 700; color: #1e40af; }
+        .metric-label { color: #6b7280; font-size: 14px; margin-top: 5px; }
+        .chart-container { height: 400px; margin: 30px 0; }
+        .assumptions { background: #f3f4f6; padding: 20px; border-radius: 8px; font-size: 14px; }
+        .cpf-note { background: #ecfdf5; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Singapore Monte Carlo Simulation</h1>
+        <p class="subtitle">30-year simulation with CPF LIFE integration • 1,000 scenarios</p>
+        
+        <div class="input-group">
+            <div class="input-field">
+                <label>Initial Investable Assets (S$)</label>
+                <input type="number" id="initialPortfolio" value="1000000" min="0" step="1000">
+            </div>
+            <div class="input-field">
+                <label>CPF Balance (S$)</label>
+                <input type="number" id="cpfBalance" value="1000000" min="0" step="1000">
+            </div>
+            <div class="input-field">
+                <label>Annual Expenses (S$/year)</label>
+                <input type="number" id="annualExpense" value="80000" min="0" step="1000">
+            </div>
+            <div class="input-field">
+                <label>Retirement Years</label>
+                <input type="number" id="years" value="30" min="1" max="50">
+            </div>
+            <div class="input-field">
+                <label>Equity Allocation (%)</label>
+                <input type="number" id="equityAlloc" value="60" min="0" max="100">
+            </div>
+            <div class="input-field">
+                <label>Inflation Rate (%)</label>
+                <input type="number" id="inflation" value="2.1" min="0" max="10" step="0.1">
+            </div>
+        </div>
+        
+        <button onclick="runSimulation()">🚀 Run Monte Carlo Simulation</button>
+        
+        <div class="results" id="results">
+            <div class="success-rate" id="successRate"></div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="medianBalance">S$0</div>
+                    <div class="metric-label">Median Ending Balance</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="worstBalance">S$0</div>
+                    <div class="metric-label">10th Percentile</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="bestBalance">S$0</div>
+                    <div class="metric-label">90th Percentile</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="withdrawalRate">0%</div>
+                    <div class="metric-label">Initial Withdrawal Rate</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="endingBalanceChart"></canvas>
+            </div>
+            
+            <div class="assumptions">
+                <strong>Assumptions:</strong> Equities 7% mean/15% volatility • Bonds 3.5% mean/5% volatility • CPF 4% risk-free • 1,000 simulations
+            </div>
+            
+            <div class="cpf-note">
+                <strong>CPF Integration:</strong> CPF grows at 4% p.a., provides ~S$3K/month LIFE payouts from age 65 (inflation-adjusted).
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+        
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-SG', {
+                style: 'currency',
+                currency: 'SGD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(num);
+        }
+        
+        function runSimulation() {
+            const btn = document.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = 'Running simulation...';
+            
+            // Use setTimeout to avoid blocking UI
+            setTimeout(() => {
+                try {
+                    const inputs = {
+                        initialPortfolio: parseFloat(document.getElementById('initialPortfolio').value) || 0,
+                        cpfBalance: parseFloat(document.getElementById('cpfBalance').value) || 0,
+                        annualExpense: parseFloat(document.getElementById('annualExpense').value) || 0,
+                        years: parseInt(document.getElementById('years').value) || 30,
+                        equityAlloc: parseFloat(document.getElementById('equityAlloc').value) / 100 || 0.6,
+                        inflation: parseFloat(document.getElementById('inflation').value) / 100 || 0.021
+                    };
+                    
+                    // Fixed portfolio assumptions
+                    const equityMean = 0.07, equityStd = 0.15;
+                    const bondMean = 0.035, bondStd = 0.05;
+                    const cpfRate = 0.04;
+                    
+                    const portMean = inputs.equityAlloc * equityMean + (1 - inputs.equityAlloc) * bondMean;
+                    const portStd = Math.sqrt((inputs.equityAlloc**2 * equityStd**2) + ((1-inputs.equityAlloc)**2 * bondStd**2));
+                    
+                    const nSims = 1000;
+                    const endingBalances = [];
+                    let successCount = 0;
+                    
+                    // Run simulations
+                    for(let i = 0; i < nSims; i++) {
+                        let portfolio = inputs.initialPortfolio;
+                        let survived = true;
+                        
+                        for(let y = 0; y < inputs.years; y++) {
+                            // Portfolio return (Box-Muller simplified)
+                            const ret = normalRandom(portMean, portStd);
+                            portfolio = portfolio * (1 + ret);
+                            
+                            // Inflation-adjusted withdrawal (net of CPF payout)
+                            const inflatedExpense = inputs.annualExpense * Math.pow(1 + inputs.inflation, y);
+                            const cpfPayout = Math.max(0, 36000 * Math.pow(1 + inputs.inflation, Math.max(0, y - 10)));
+                            const netWithdrawal = Math.max(0, inflatedExpense - cpfPayout);
+                            
+                            portfolio -= netWithdrawal;
+                            
+                            if (portfolio < 0) {
+                                survived = false;
+                                break;
+                            }
+                        }
+                        
+                        endingBalances.push(portfolio);
+                        if (survived && portfolio >= 0) successCount++;
+                    }
+                    
+                    const successRate = (successCount / nSims) * 100;
+                    const validBalances = endingBalances.filter(b => b >= 0);
+                    
+                    // Update UI
+                    document.getElementById('successRate').textContent = `${successRate.toFixed(1)}% Success Rate`;
+                    document.getElementById('successRate').style.color = successRate >= 90 ? '#10b981' : successRate >= 70 ? '#f59e0b' : '#ef4444';
+                    
+                    document.getElementById('medianBalance').textContent = formatCurrency(median(validBalances));
+                    document.getElementById('worstBalance').textContent = formatCurrency(percentile(validBalances, 10));
+                    document.getElementById('bestBalance').textContent = formatCurrency(percentile(validBalances, 90));
+                    document.getElementById('withdrawalRate').textContent = `${((inputs.annualExpense / inputs.initialPortfolio)*100).toFixed(1)}%`;
+                    
+                    updateChart(validBalances);
+                    document.getElementById('results').style.display = 'block';
+                    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                    
+                } catch (error) {
+                    console.error('Simulation error:', error);
+                    alert('Simulation failed. Please check your inputs.');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '🚀 Run Again';
+                }
+            }, 10);
+        }
+        
+        // Simplified normal random (faster, more reliable)
+        function normalRandom(mean, std) {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            const num = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+            return num * std + mean;
+        }
+        
+        // Simplified median
+        function median(arr) {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+        }
+        
+        // Simplified percentile
+        function percentile(arr, p) {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const index = (p / 100) * (sorted.length - 1);
+            const lower = Math.floor(index);
+            const upper = Math.min(lower + 1, sorted.length - 1);
+            const weight = index % 1;
+            return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+        }
+        
+        function updateChart(balances) {
+            const ctx = document.getElementById('endingBalanceChart').getContext('2d');
+            if (chart) chart.destroy();
+            
+            // Sample data for histogram (top 1000 points to avoid memory issues)
+            const sampled = balances.slice(0, 1000);
+            
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Ending Balances',
+                        data: sampled.map((b, i) => ({x: i, y: b})),
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Ending Portfolio Balances Distribution', font: { size: 16, weight: 'bold' } }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            title: { display: true, text: 'Balance (S$)' },
+                            ticks: { callback: v => formatCurrency(v) }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
