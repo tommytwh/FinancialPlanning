@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asset Pyramid</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
+  <style>
+    :root, [data-theme="light"] {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem; --space-16: 4rem;
+      --color-bg: #f7f6f2; --color-surface: #f9f8f5; --color-surface-2: #fbfbf9; --color-surface-offset: #f3f0ec; --color-surface-dynamic: #e6e4df; --color-divider: #dcd9d5; --color-border: #d4d1ca;
+      --color-text: #28251d; --color-text-muted: #6d6b66; --color-text-faint: #9f9c94; --color-text-inverse: #f9f8f4; --color-primary: #01696f; --color-primary-hover: #0c4e54; --color-primary-highlight: #cedcd8;
+      --color-success: #437a22; --color-warning: #964219; --color-blue: #006494; --color-orange: #da7101; --color-purple: #7a39bb; --color-gold: #b68700;
+      --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px rgb(40 37 29 / 0.06); --shadow-md: 0 8px 24px rgb(40 37 29 / 0.08); --shadow-lg: 0 18px 42px rgb(40 37 29 / 0.12);
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1); --font-body: 'Satoshi', 'Inter', sans-serif;
+    }
+    [data-theme="dark"] {
+      --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #201f1d; --color-surface-offset: #23211f; --color-surface-dynamic: #2d2c2a; --color-divider: #262523; --color-border: #393836;
+      --color-text: #e4e1db; --color-text-muted: #aaa6a0; --color-text-faint: #7b7771; --color-text-inverse: #1b1917; --color-primary: #4f98a3; --color-primary-hover: #67aeb8; --color-primary-highlight: #313b3b;
+      --color-success: #76b652; --color-warning: #d58c60; --color-blue: #71a8d8; --color-orange: #ffb357; --color-purple: #bc92ea; --color-gold: #efc657;
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25); --shadow-md: 0 8px 24px rgb(0 0 0 / 0.35); --shadow-lg: 0 18px 42px rgb(0 0 0 / 0.45);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body { min-height: 100dvh; font-family: var(--font-body); font-size: var(--text-base); line-height: 1.55; color: var(--color-text); background: radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 32%), linear-gradient(180deg, var(--color-bg), var(--color-surface-offset)); }
+    img, svg { display: block; max-width: 100%; }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    input { border: none; background: none; }
+    :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+    .app { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); background: color-mix(in srgb, var(--color-surface) 78%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent); box-shadow: var(--shadow-sm); }
+    .topbar-inner { max-width: 1440px; margin: 0 auto; padding: var(--space-4) var(--space-5); display: grid; grid-template-columns: minmax(200px, 1.2fr) 3fr auto; gap: var(--space-4); align-items: center; }
+    .brand { display: flex; align-items: center; gap: var(--space-3); }
+    .brand-mark { width: 2.6rem; height: 2.6rem; border-radius: 0.85rem; display: grid; place-items: center; background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-blue) 65%, var(--color-primary))); color: var(--color-text-inverse); box-shadow: var(--shadow-md); }
+    .brand-mark svg { width: 1.35rem; height: 1.35rem; }
+    .brand h1 { font-size: var(--text-lg); line-height: 1.1; font-weight: 900; letter-spacing: -0.02em; }
+    .brand p { color: var(--color-text-muted); font-size: var(--text-xs); }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+    .summary-card { background: color-mix(in srgb, var(--color-surface-2) 75%, transparent); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); min-height: 4.9rem; }
+    .summary-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2); }
+    .summary-value { font-size: var(--text-lg); line-height: 1.05; font-weight: 800; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.02em; }
+    .summary-note { margin-top: var(--space-1); color: var(--color-text-muted); font-size: var(--text-xs); }
+    .theme-toggle { width: 2.8rem; height: 2.8rem; border-radius: var(--radius-full); display: grid; place-items: center; background: var(--color-surface-2); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); box-shadow: var(--shadow-sm); }
+    .theme-toggle:hover { background: var(--color-surface-offset); }
+    .theme-toggle svg { width: 1.15rem; height: 1.15rem; }
+    .workspace { max-width: 1440px; width: 100%; margin: 0 auto; padding: var(--space-5); display: grid; grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+    .panel { background: color-mix(in srgb, var(--color-surface) 82%, transparent); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); overflow: hidden; }
+    .panel-header { padding: var(--space-5); border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface-2) 80%, transparent), color-mix(in srgb, var(--color-surface) 85%, transparent)); }
+    .panel-header h2 { font-size: var(--text-lg); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; margin-bottom: var(--space-2); }
+    .panel-header p { color: var(--color-text-muted); max-width: 42ch; font-size: var(--text-sm); }
+    .form-panel { position: sticky; top: 6.85rem; }
+    .form-body { padding: var(--space-4); display: grid; gap: var(--space-3); max-height: calc(100dvh - 9.5rem); overflow: auto; }
+    .asset-card { border-radius: var(--radius-lg); padding: var(--space-4); background: color-mix(in srgb, var(--color-surface-2) 70%, transparent); border: 1px solid color-mix(in srgb, var(--color-text) 9%, transparent); display: grid; gap: var(--space-3); }
+    .asset-top { display: flex; justify-content: space-between; gap: var(--space-3); align-items: start; }
+    .asset-title-wrap { display: grid; gap: var(--space-1); }
+    .asset-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-base); font-weight: 800; letter-spacing: -0.01em; }
+    .asset-dot { width: 0.85rem; height: 0.85rem; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35); flex: 0 0 auto; }
+    .asset-subtitle { color: var(--color-text-muted); font-size: var(--text-xs); max-width: 28ch; }
+    .asset-mini { text-align: right; color: var(--color-text-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums lining-nums; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .field { display: grid; gap: var(--space-2); }
+    .field label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); font-weight: 700; }
+    .input-shell { height: 3rem; display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border-radius: var(--radius-md); background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); }
+    .input-prefix { color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; flex: 0 0 auto; }
+    .input-shell input { width: 100%; min-width: 0; font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums lining-nums; }
+    .input-shell:focus-within { border-color: color-mix(in srgb, var(--color-primary) 75%, var(--color-text) 25%); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 18%, transparent); }
+    .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-top: var(--space-2); }
+    .btn { min-height: 2.85rem; padding: 0 var(--space-4); border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: 800; display: inline-flex; align-items: center; gap: var(--space-2); transition: transform var(--transition), background var(--transition), border-color var(--transition); }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--color-primary); color: var(--color-text-inverse); box-shadow: var(--shadow-sm); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-secondary { background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); color: var(--color-text); }
+    .actions .file-input { display: none; }
+    .status { padding: 0 var(--space-1); color: var(--color-text-muted); font-size: var(--text-xs); min-height: 1rem; }
+    .status.ok { color: var(--color-success); }
+    .status.error { color: var(--color-warning); }
+    .viz-body { padding: var(--space-5); display: grid; gap: var(--space-5); }
+    .viz-header { display: flex; justify-content: space-between; gap: var(--space-4); align-items: end; flex-wrap: wrap; }
+    .viz-header p { color: var(--color-text-muted); font-size: var(--text-sm); max-width: 56ch; }
+    .pyramid-wrap { position: relative; min-height: 560px; border-radius: calc(var(--radius-xl) + 0.2rem); background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface-2) 76%, transparent), color-mix(in srgb, var(--color-surface-offset) 88%, transparent)); border: 1px solid color-mix(in srgb, var(--color-text) 9%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22); overflow: hidden; padding: var(--space-5); display: grid; align-items: end; }
+    .pyramid-wrap::before { content: ""; position: absolute; inset: auto 8% 4% 8%; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-text) 24%, transparent), transparent); }
+    .pyramid { position: relative; z-index: 1; display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-start; gap: 0.5rem; width: 100%; margin-inline: auto; padding-bottom: var(--space-8); }
+    .segment { position: relative; display: grid; place-items: center; min-height: 54px; padding: var(--space-3) var(--space-4); color: white; text-align: center; clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%); box-shadow: var(--shadow-md); transition: transform var(--transition), filter var(--transition); }
+    .segment:hover { transform: translateY(-2px) scale(1.01); filter: saturate(1.04); }
+    .segment-content { width: 100%; display: grid; gap: var(--space-1); justify-items: center; }
+    .segment-name { font-size: var(--text-sm); font-weight: 800; letter-spacing: -0.01em; text-shadow: 0 1px 2px rgb(0 0 0 / 0.2); }
+    .segment-values { display: flex; justify-content: center; gap: var(--space-3); flex-wrap: wrap; font-size: var(--text-xs); font-variant-numeric: tabular-nums lining-nums; color: rgb(255 255 255 / 0.92); }
+    .legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    .legend-item { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--color-surface-2) 70%, transparent); border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); font-size: var(--text-sm); }
+    .legend-left { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+    .legend-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35); flex: 0 0 auto; }
+    .legend-name { font-weight: 800; }
+    .legend-share, .legend-return { font-variant-numeric: tabular-nums lining-nums; color: var(--color-text-muted); font-size: var(--text-xs); white-space: nowrap; }
+    .empty-state { min-height: 450px; display: grid; place-items: center; text-align: center; padding: var(--space-8); color: var(--color-text-muted); }
+    .empty-state strong { color: var(--color-text); display: block; margin-bottom: var(--space-2); }
+    [hidden] { display: none !important; }
+    @media (max-width: 1100px) { .topbar-inner { grid-template-columns: 1fr; } .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workspace { grid-template-columns: 1fr; } .form-panel { position: relative; top: 0; } .form-body { max-height: none; } }
+    @media (max-width: 720px) { .topbar-inner, .workspace, .viz-body, .panel-header, .form-body { padding-left: var(--space-4); padding-right: var(--space-4); } .workspace { padding-top: var(--space-4); } .summary-grid { grid-template-columns: 1fr; } .field-grid { grid-template-columns: 1fr; } .legend { grid-template-columns: 1fr; } .pyramid-wrap { min-height: 480px; padding: var(--space-4); } .segment-name { font-size: var(--text-xs); } .segment-values { gap: var(--space-2); } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 20.5h17L12 3Z"></path><path d="M8.1 12.7h7.8"></path><path d="M6 17h12"></path></svg>
+          </div>
+          <div>
+            <h1>Asset Pyramid</h1>
+            <p>Enter balances, returns, and save or load your portfolio as JSON.</p>
+          </div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card"><div class="summary-label">Total assets</div><div class="summary-value" id="totalAssets">S$0</div><div class="summary-note">Across all entered buckets</div></div>
+          <div class="summary-card"><div class="summary-label">Weighted return</div><div class="summary-value" id="weightedReturn">0.00%</div><div class="summary-note">Portfolio-level yearly rate</div></div>
+          <div class="summary-card"><div class="summary-label">Expected yearly gain</div><div class="summary-value" id="expectedGain">S$0</div><div class="summary-note">Amount × yearly return</div></div>
+          <div class="summary-card"><div class="summary-label">Largest holding</div><div class="summary-value" id="largestHolding">—</div><div class="summary-note" id="largestHoldingNote">Add values to rank assets</div></div>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+    </header>
+    <main class="workspace">
+      <section class="panel form-panel" aria-labelledby="inputsTitle">
+        <div class="panel-header"><h2 id="inputsTitle">Asset inputs</h2><p>Use the buttons below to export your current portfolio to JSON or import a saved JSON file back into the app.</p></div>
+        <div class="form-body" id="assetForm"></div>
+      </section>
+      <section class="panel" aria-labelledby="pyramidTitle">
+        <div class="panel-header"><div class="viz-header"><div><h2 id="pyramidTitle">Portfolio pyramid</h2><p>The base shows your largest allocation. Each segment includes amount, share of portfolio, and expected yearly return for that asset.</p></div><div class="summary-note">Sorted by amount entered</div></div></div>
+        <div class="viz-body">
+          <div class="pyramid-wrap">
+            <div class="empty-state" id="emptyState"><div><strong>No assets entered yet</strong>Add one or more balances on the left to build the pyramid.</div></div>
+            <div class="pyramid" id="pyramid" aria-live="polite"></div>
+          </div>
+          <div class="legend" id="legend"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const assets = [
+      { key: 'cash', name: 'Cash', subtitle: 'Savings accounts, current accounts, cash on hand', color: '#6b7280', amount: 50000, rate: 2.0 },
+      { key: 'equities', name: 'Equities', subtitle: 'Stocks, ETFs, unit trusts, equity-linked holdings', color: '#01696f', amount: 180000, rate: 7.5 },
+      { key: 'bonds', name: 'Bonds', subtitle: 'Corporate or government bonds and bond funds', color: '#006494', amount: 90000, rate: 3.8 },
+      { key: 'ssb', name: 'Singapore Savings Bonds', subtitle: 'Capital-guaranteed SSB holdings', color: '#b68700', amount: 40000, rate: 3.0 },
+      { key: 'tbills', name: 'SG T-bills', subtitle: 'Singapore Treasury Bills and short-term SGS', color: '#da7101', amount: 35000, rate: 3.3 },
+      { key: 'cpfOa', name: 'CPF OA', subtitle: 'Ordinary Account balances', color: '#7a39bb', amount: 80000, rate: 2.5 },
+      { key: 'cpfSa', name: 'CPF SA', subtitle: 'Special Account balances', color: '#437a22', amount: 120000, rate: 4.0 }
+    ];
+
+    const defaultState = Object.fromEntries(assets.map(asset => [asset.key, { amount: asset.amount, rate: asset.rate }]));
+    const state = structuredClone(defaultState);
+    const assetForm = document.getElementById('assetForm');
+    const pyramid = document.getElementById('pyramid');
+    const legend = document.getElementById('legend');
+    const emptyState = document.getElementById('emptyState');
+    const totalAssetsEl = document.getElementById('totalAssets');
+    const weightedReturnEl = document.getElementById('weightedReturn');
+    const expectedGainEl = document.getElementById('expectedGain');
+    const largestHoldingEl = document.getElementById('largestHolding');
+    const largestHoldingNoteEl = document.getElementById('largestHoldingNote');
+    const root = document.documentElement;
+    let statusEl;
+    let fileInput;
+
+    function formatCurrency(value) { return new Intl.NumberFormat('en-SG', { style: 'currency', currency: 'SGD', maximumFractionDigits: 0 }).format(value || 0); }
+    function formatCompact(value) { return new Intl.NumberFormat('en-SG', { style: 'currency', currency: 'SGD', maximumFractionDigits: 1, notation: value >= 1000000 ? 'compact' : 'standard' }).format(value || 0); }
+    function formatPercent(value) { return `${Number(value || 0).toFixed(2)}%`; }
+    function clampNumber(value) { const parsed = Number(String(value).replace(/,/g, '')); return Number.isFinite(parsed) ? Math.max(0, parsed) : 0; }
+
+    function setStatus(message, type = '') {
+      if (!statusEl) return;
+      statusEl.textContent = message;
+      statusEl.className = `status${type ? ` ${type}` : ''}`;
+    }
+
+    function syncInputsFromState() {
+      assets.forEach(asset => {
+        const amountInput = document.getElementById(`amount-${asset.key}`);
+        const rateInput = document.getElementById(`rate-${asset.key}`);
+        if (amountInput) amountInput.value = state[asset.key].amount;
+        if (rateInput) rateInput.value = state[asset.key].rate;
+      });
+    }
+
+    function exportJson() {
+      const payload = {
+        app: 'Asset Pyramid',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        assets: assets.map(asset => ({
+          key: asset.key,
+          name: asset.name,
+          amount: clampNumber(state[asset.key].amount),
+          yearlyReturnPct: clampNumber(state[asset.key].rate)
+        }))
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `asset-pyramid-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Portfolio JSON downloaded.', 'ok');
+    }
+
+    function applyImportedData(payload) {
+      if (!payload || !Array.isArray(payload.assets)) throw new Error('JSON file must contain an assets array.');
+      const incoming = Object.fromEntries(payload.assets.map(item => [item.key, item]));
+      let matched = 0;
+      assets.forEach(asset => {
+        const item = incoming[asset.key];
+        if (!item) return;
+        state[asset.key].amount = clampNumber(item.amount);
+        state[asset.key].rate = clampNumber(item.yearlyReturnPct ?? item.rate);
+        matched += 1;
+      });
+      if (!matched) throw new Error('No matching asset keys were found in the JSON file.');
+      syncInputsFromState();
+      update();
+      setStatus(`Loaded ${matched} asset entries from JSON.`, 'ok');
+    }
+
+    function handleFileLoad(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const payload = JSON.parse(reader.result);
+          applyImportedData(payload);
+        } catch (error) {
+          setStatus(error.message || 'Unable to load JSON file.', 'error');
+        }
+      };
+      reader.onerror = () => setStatus('Failed to read the selected file.', 'error');
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function renderForm() {
+      assetForm.innerHTML = '';
+      assets.forEach(asset => {
+        const wrapper = document.createElement('article');
+        wrapper.className = 'asset-card';
+        wrapper.innerHTML = `
+          <div class="asset-top">
+            <div class="asset-title-wrap">
+              <div class="asset-title"><span class="asset-dot" style="background:${asset.color}"></span><span>${asset.name}</span></div>
+              <div class="asset-subtitle">${asset.subtitle}</div>
+            </div>
+            <div class="asset-mini" id="mini-${asset.key}">Expected gain<br>${formatCurrency((state[asset.key].amount * state[asset.key].rate) / 100)}</div>
+          </div>
+          <div class="field-grid">
+            <div class="field"><label for="amount-${asset.key}">Amount</label><div class="input-shell"><span class="input-prefix">S$</span><input id="amount-${asset.key}" type="number" min="0" step="1000" inputmode="decimal" value="${state[asset.key].amount}" aria-label="${asset.name} amount" /></div></div>
+            <div class="field"><label for="rate-${asset.key}">Yearly return %</label><div class="input-shell"><input id="rate-${asset.key}" type="number" min="0" step="0.1" inputmode="decimal" value="${state[asset.key].rate}" aria-label="${asset.name} yearly return percentage" /><span class="input-prefix">%</span></div></div>
+          </div>`;
+        wrapper.querySelector(`#amount-${asset.key}`).addEventListener('input', e => { state[asset.key].amount = clampNumber(e.target.value); update(); setStatus(''); });
+        wrapper.querySelector(`#rate-${asset.key}`).addEventListener('input', e => { state[asset.key].rate = clampNumber(e.target.value); update(); setStatus(''); });
+        assetForm.appendChild(wrapper);
+      });
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      actions.innerHTML = `
+        <button class="btn btn-primary" type="button" id="saveJson">Save JSON</button>
+        <button class="btn btn-secondary" type="button" id="loadJsonBtn">Load JSON</button>
+        <button class="btn btn-secondary" type="button" id="fillSample">Use sample values</button>
+        <button class="btn btn-secondary" type="button" id="clearAll">Clear all</button>
+        <input class="file-input" id="jsonFileInput" type="file" accept="application/json,.json" />
+      `;
+      assetForm.appendChild(actions);
+
+      statusEl = document.createElement('div');
+      statusEl.className = 'status';
+      statusEl.textContent = 'You can export or import the current portfolio as JSON.';
+      assetForm.appendChild(statusEl);
+
+      fileInput = document.getElementById('jsonFileInput');
+      document.getElementById('saveJson').addEventListener('click', exportJson);
+      document.getElementById('loadJsonBtn').addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', handleFileLoad);
+
+      document.getElementById('fillSample').addEventListener('click', () => {
+        assets.forEach(asset => {
+          state[asset.key].amount = defaultState[asset.key].amount;
+          state[asset.key].rate = defaultState[asset.key].rate;
+        });
+        syncInputsFromState();
+        update();
+        setStatus('Sample values restored.', 'ok');
+      });
+
+      document.getElementById('clearAll').addEventListener('click', () => {
+        assets.forEach(asset => {
+          state[asset.key].amount = 0;
+          state[asset.key].rate = 0;
+        });
+        syncInputsFromState();
+        update();
+        setStatus('All values cleared.', 'ok');
+      });
+    }
+
+    function updateSummary(sortedAssets, totalAssets, totalExpectedGain) {
+      const weightedReturn = totalAssets > 0 ? (totalExpectedGain / totalAssets) * 100 : 0;
+      totalAssetsEl.textContent = formatCurrency(totalAssets);
+      weightedReturnEl.textContent = formatPercent(weightedReturn);
+      expectedGainEl.textContent = formatCurrency(totalExpectedGain);
+      if (sortedAssets.length) {
+        const top = sortedAssets[0];
+        const share = totalAssets > 0 ? (top.amount / totalAssets) * 100 : 0;
+        largestHoldingEl.textContent = top.name;
+        largestHoldingNoteEl.textContent = `${formatCurrency(top.amount)} • ${formatPercent(share)}`;
+      } else {
+        largestHoldingEl.textContent = '—';
+        largestHoldingNoteEl.textContent = 'Add values to rank assets';
+      }
+    }
+
+    function renderPyramid(sortedAssets, totalAssets) {
+      pyramid.innerHTML = '';
+      legend.innerHTML = '';
+      if (!sortedAssets.length) {
+        emptyState.hidden = false;
+        emptyState.style.display = 'grid';
+        pyramid.style.display = 'none';
+        return;
+      }
+      emptyState.hidden = true;
+      emptyState.style.display = 'none';
+      pyramid.style.display = 'flex';
+      const maxAmount = sortedAssets[0].amount;
+      const minWidth = 22;
+      const maxWidth = 94;
+      sortedAssets.slice().reverse().forEach((asset, indexFromTop) => {
+        const amountRatio = maxAmount > 0 ? asset.amount / maxAmount : 0;
+        const widthPercent = minWidth + (amountRatio * (maxWidth - minWidth));
+        const gain = asset.amount * (asset.rate / 100);
+        const share = totalAssets > 0 ? (asset.amount / totalAssets) * 100 : 0;
+        const segment = document.createElement('div');
+        segment.className = 'segment';
+        segment.style.width = `${widthPercent}%`;
+        segment.style.background = `linear-gradient(180deg, ${asset.color}, color-mix(in srgb, ${asset.color} 72%, black))`;
+        segment.style.minHeight = `${56 + (indexFromTop * 7)}px`;
+        segment.innerHTML = `<div class="segment-content"><div class="segment-name">${asset.name}</div><div class="segment-values"><span>${formatCompact(asset.amount)}</span><span>${formatPercent(share)}</span><span>${formatPercent(asset.rate)} / yr</span></div></div>`;
+        pyramid.appendChild(segment);
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item';
+        legendItem.innerHTML = `<div class="legend-left"><span class="legend-dot" style="background:${asset.color}"></span><div><div class="legend-name">${asset.name}</div><div class="legend-share">${formatCurrency(asset.amount)} • ${formatPercent(share)}</div></div></div><div class="legend-return">${formatPercent(asset.rate)}</div><div class="legend-return">${formatCurrency(gain)}</div>`;
+        legend.appendChild(legendItem);
+      });
+    }
+
+    function updateMiniCards() {
+      assets.forEach(asset => {
+        const target = document.getElementById(`mini-${asset.key}`);
+        if (!target) return;
+        const amount = clampNumber(state[asset.key].amount);
+        const rate = clampNumber(state[asset.key].rate);
+        const gain = amount * (rate / 100);
+        target.innerHTML = `Expected gain<br>${formatCurrency(gain)}`;
+      });
+    }
+
+    function update() {
+      const computed = assets.map(asset => ({ ...asset, amount: clampNumber(state[asset.key].amount), rate: clampNumber(state[asset.key].rate) }));
+      const positiveAssets = computed.filter(asset => asset.amount > 0);
+      const sortedAssets = positiveAssets.sort((a, b) => b.amount - a.amount);
+      const totalAssets = positiveAssets.reduce((sum, asset) => sum + asset.amount, 0);
+      const totalExpectedGain = positiveAssets.reduce((sum, asset) => sum + (asset.amount * asset.rate / 100), 0);
+      updateMiniCards();
+      updateSummary(sortedAssets, totalAssets, totalExpectedGain);
+      renderPyramid(sortedAssets, totalAssets);
+    }
+
+    (function initThemeToggle() {
+      const button = document.querySelector('[data-theme-toggle]');
+      let theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.setAttribute('data-theme', theme);
+      function iconFor(current) {
+        return current === 'dark'
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+      }
+      function syncButton() { button.innerHTML = iconFor(theme); button.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'); }
+      syncButton();
+      button.addEventListener('click', () => { theme = theme === 'dark' ? 'light' : 'dark'; root.setAttribute('data-theme', theme); syncButton(); });
+    })();
+
+    renderForm();
+    update();
+  </script>
+</body>
+</html>
